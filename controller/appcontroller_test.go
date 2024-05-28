@@ -461,6 +461,33 @@ func TestAutoSync(t *testing.T) {
 	assert.False(t, app.Operation.Sync.Prune)
 }
 
+func TestSelfHeal(t *testing.T) {
+    // If the previous sync attempt failed and selfheal is set we should
+    // just retry
+    app := newFakeApp()
+    app.Spec.SyncPolicy.Automated.SelfHeal = true
+    app.Status.OperationState = &v1alpha1.OperationState{
+        Operation: v1alpha1.Operation{
+            Sync: &v1alpha1.SyncOperation{},
+        },
+        Phase: synccommon.OperationFailed,
+        SyncResult: &v1alpha1.SyncOperationResult{
+            Revision: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            Source:   *app.Spec.Source.DeepCopy(),
+        },
+    }
+    ctrl := newFakeController(&fakeData{apps: []runtime.Object{app}}, nil)
+    syncStatus := v1alpha1.SyncStatus{
+        Status:   v1alpha1.SyncStatusCodeOutOfSync,
+        Revision: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    }
+    cond, _ := ctrl.autoSync(app, &syncStatus, []v1alpha1.ResourceStatus{{Name: "guestbook", Kind: kube.DeploymentKind, Status: v1alpha1.SyncStatusCodeOutOfSync}})
+    assert.Nil(t, cond)
+    app, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(test.FakeArgoCDNamespace).Get(context.Background(), "my-app", metav1.GetOptions{})
+    assert.NoError(t, err)
+    assert.Nil(t, app.Operation)
+}
+
 func TestAutoSyncNotAllowEmpty(t *testing.T) {
 	app := newFakeApp()
 	app.Spec.SyncPolicy.Automated.Prune = true
