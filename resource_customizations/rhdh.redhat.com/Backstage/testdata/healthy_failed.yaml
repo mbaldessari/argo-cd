@@ -1,0 +1,52 @@
+apiVersion: rhdh.redhat.com/v1alpha2
+kind: Backstage
+metadata:
+  annotations:
+    argocd.argoproj.io/tracking-id: rhdh-config:rhdh.redhat.com/Backstage:developerhub-ns/developer-hub
+  creationTimestamp: '2025-01-20T09:23:42Z'
+  generation: 1
+  name: developer-hub
+  namespace: developerhub-ns
+  resourceVersion: '55653'
+  uid: 66ac7157-ef63-496b-9389-4255e3dd90b3
+spec:
+  application:
+    appConfig:
+      configMaps:
+        - name: app-config-rhdh
+      mountPath: /opt/app-root/src
+    dynamicPluginsConfigMapName: dynamic-plugins-rhdh
+    extraEnvs:
+      envs:
+        - name: NODE_TLS_REJECT_UNAUTHORIZED
+          value: '0'
+      secrets:
+        - name: rhdh-github-secret
+        - name: rhdh-argo-secret
+        - name: rhdh-tekton-secret
+    extraFiles:
+      mountPath: /opt/app-root/src
+    replicas: 1
+    route:
+      enabled: true
+  database:
+    enableLocalDb: true
+  deployment:
+    patch:
+      spec:
+        template:
+          spec:
+            volumes:
+              - $patch: replace
+                name: dynamic-plugins-root
+                persistentVolumeClaim:
+                  claimName: dynamic-plugins-root
+status:
+  conditions:
+    - lastTransitionTime: '2025-01-20T09:23:42Z'
+      message: >-
+        failed to preprocess backstage spec failed to get external config from
+        rhdh-github-secret: Secret "rhdh-github-secret" not found
+      reason: DeployFailed
+      status: 'False'
+      type: Deployed

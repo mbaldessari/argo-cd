@@ -1,0 +1,9 @@
+tests:
+  - healthStatus:
+      status: Healthy
+      message: 'Backstage is healthy'
+    inputPath: testdata/healthy_deployed.yaml
+  - healthStatus:
+      status: Degraded
+      message: 'Backstage is degraded: failed to preprocess backstage spec failed to get external config from rhdh-github-secret: Secret "rhdh-github-secret" not found'
+    inputPath: testdata/healthy_failed.yaml
