@@ -317,7 +317,13 @@ func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
 		if isSSH, user := IsSSHURL(repoURL); isSSH {
 			sshUser = user
 		}
-		signer, err := ssh.ParsePrivateKey([]byte(creds.sshPrivateKey))
+		var signer ssh.Signer
+		var err error
+		if creds.sshPassphrase != "" {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(creds.sshPrivateKey), []byte(creds.sshPassphrase))
+		} else {
+			signer, err = ssh.ParsePrivateKey([]byte(creds.sshPrivateKey))
+		}
 		if err != nil {
 			return nil, err
 		}

@@ -71,6 +71,14 @@ func TestGetGitCreds(t *testing.T) {
 			expected: git.NewSSHCreds("ssh-key", "", false, ""),
 		},
 		{
+			name: "SSH credentials with passphrase",
+			repo: &Repository{
+				SSHPrivateKey: "ssh-key",
+				SSHPassphrase: "passphrase",
+			},
+			expected: git.NewSSHCredsWithPassphrase("ssh-key", "passphrase", "", false, ""),
+		},
+		{
 			name: "GitHub App credentials",
 			repo: &Repository{
 				GithubAppPrivateKey:     "github-key",

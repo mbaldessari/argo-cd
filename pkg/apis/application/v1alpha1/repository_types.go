@@ -27,6 +27,8 @@ type RepoCreds struct {
 	Password string `json:"password,omitempty" protobuf:"bytes,3,opt,name=password"`
 	// SSHPrivateKey contains the private key data for authenticating at the repo server using SSH (only Git repos)
 	SSHPrivateKey string `json:"sshPrivateKey,omitempty" protobuf:"bytes,4,opt,name=sshPrivateKey"`
+	// SSHPassphrase contains the passphrase for the SSH private key (only Git repos)
+	SSHPassphrase string `json:"sshPassphrase,omitempty" protobuf:"bytes,30,opt,name=sshPassphrase"`
 	// TLSClientCertData specifies the TLS client cert data for authenticating at the repo server
 	TLSClientCertData string `json:"tlsClientCertData,omitempty" protobuf:"bytes,5,opt,name=tlsClientCertData"`
 	// TLSClientCertKey specifies the TLS client cert key for authenticating at the repo server
@@ -69,6 +71,8 @@ type Repository struct {
 	Password string `json:"password,omitempty" protobuf:"bytes,3,opt,name=password"`
 	// SSHPrivateKey contains the PEM data for authenticating at the repo server. Only used with Git repos.
 	SSHPrivateKey string `json:"sshPrivateKey,omitempty" protobuf:"bytes,4,opt,name=sshPrivateKey"`
+	// SSHPassphrase contains the passphrase for the SSH private key. Only used with Git repos.
+	SSHPassphrase string `json:"sshPassphrase,omitempty" protobuf:"bytes,31,opt,name=sshPassphrase"`
 	// ConnectionState contains information about the current state of connection to the repository server
 	ConnectionState ConnectionState `json:"connectionState,omitempty" protobuf:"bytes,5,opt,name=connectionState"`
 	// InsecureIgnoreHostKey should not be used anymore, Insecure is favoured
@@ -146,6 +150,9 @@ func (repo *Repository) CopyCredentialsFromRepo(source *Repository) {
 		if repo.SSHPrivateKey == "" {
 			repo.SSHPrivateKey = source.SSHPrivateKey
 		}
+		if repo.SSHPassphrase == "" {
+			repo.SSHPassphrase = source.SSHPassphrase
+		}
 		if repo.TLSClientCertData == "" {
 			repo.TLSClientCertData = source.TLSClientCertData
 		}
@@ -187,6 +194,9 @@ func (repo *Repository) CopyCredentialsFrom(source *RepoCreds) {
 		}
 		if repo.SSHPrivateKey == "" {
 			repo.SSHPrivateKey = source.SSHPrivateKey
+		}
+		if repo.SSHPassphrase == "" {
+			repo.SSHPassphrase = source.SSHPassphrase
 		}
 		if repo.TLSClientCertData == "" {
 			repo.TLSClientCertData = source.TLSClientCertData
@@ -235,6 +245,9 @@ func (repo *Repository) GetGitCreds(store git.CredsStore) git.Creds {
 		return git.NewHTTPSCreds(repo.Username, repo.Password, repo.BearerToken, repo.TLSClientCertData, repo.TLSClientCertKey, repo.IsInsecure(), store, repo.ForceHttpBasicAuth)
 	}
 	if repo.SSHPrivateKey != "" {
+		if repo.SSHPassphrase != "" {
+			return git.NewSSHCredsWithPassphrase(repo.SSHPrivateKey, repo.SSHPassphrase, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
+		}
 		return git.NewSSHCreds(repo.SSHPrivateKey, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
 	}
 	if repo.GithubAppPrivateKey != "" && repo.GithubAppId != 0 && repo.GithubAppInstallationId != 0 {

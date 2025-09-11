@@ -269,13 +269,18 @@ var _ Creds = SSHCreds{}
 // SSH implementation
 type SSHCreds struct {
 	sshPrivateKey string
+	sshPassphrase string
 	caPath        string
 	insecure      bool
 	proxy         string
 }
 
 func NewSSHCreds(sshPrivateKey string, caPath string, insecureIgnoreHostKey bool, proxy string) SSHCreds {
-	return SSHCreds{sshPrivateKey, caPath, insecureIgnoreHostKey, proxy}
+	return SSHCreds{sshPrivateKey, "", caPath, insecureIgnoreHostKey, proxy}
+}
+
+func NewSSHCredsWithPassphrase(sshPrivateKey string, sshPassphrase string, caPath string, insecureIgnoreHostKey bool, proxy string) SSHCreds {
+	return SSHCreds{sshPrivateKey, sshPassphrase, caPath, insecureIgnoreHostKey, proxy}
 }
 
 // GetUserInfo returns empty strings for user info.
