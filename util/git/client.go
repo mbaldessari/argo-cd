@@ -321,11 +321,16 @@ func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
 		var err error
 		if creds.sshPassphrase != "" {
 			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(creds.sshPrivateKey), []byte(creds.sshPassphrase))
+			if err != nil {
+				log.Errorf("TestWithPassphrase: %v %v", creds.sshPassphrase, err)
+			}
 		} else {
 			signer, err = ssh.ParsePrivateKey([]byte(creds.sshPrivateKey))
+			if err != nil {
+				log.Errorf("TestWithoutPassphrase: %v", err)
+			}
 		}
 		if err != nil {
-			log.Errorf("Test1: %v", err)
 			return nil, err
 		}
 		auth := &PublicKeysWithOptions{}
