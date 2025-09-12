@@ -311,6 +311,7 @@ func GetRepoHTTPClient(repoURL string, insecure bool, creds Creds, proxyURL stri
 }
 
 func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
+	log.Errorf("WTF: %v", creds)
 	switch creds := creds.(type) {
 	case SSHCreds:
 		var sshUser string
