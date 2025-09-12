@@ -396,6 +396,7 @@ func secretToRepository(secret *corev1.Secret) (*appsv1.Repository, error) {
 	}
 	repository.UseAzureWorkloadIdentity = useAzureWorkloadIdentity
 
+	log.Errorf("DEBUG secretToRepository: SSHPassphrase='%s', len=%d, repo=%s", repository.SSHPassphrase, len(repository.SSHPassphrase), repository.Repo)
 	return repository, nil
 }
 

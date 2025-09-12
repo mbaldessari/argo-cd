@@ -245,9 +245,12 @@ func (repo *Repository) GetGitCreds(store git.CredsStore) git.Creds {
 		return git.NewHTTPSCreds(repo.Username, repo.Password, repo.BearerToken, repo.TLSClientCertData, repo.TLSClientCertKey, repo.IsInsecure(), store, repo.ForceHttpBasicAuth)
 	}
 	if repo.SSHPrivateKey != "" {
+		log.Errorf("DEBUG GetGitCreds: repo.SSHPassphrase='%s', len=%d", repo.SSHPassphrase, len(repo.SSHPassphrase))
 		if repo.SSHPassphrase != "" {
+			log.Errorf("DEBUG GetGitCreds: Using NewSSHCredsWithPassphrase")
 			return git.NewSSHCredsWithPassphrase(repo.SSHPrivateKey, repo.SSHPassphrase, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
 		}
+		log.Errorf("DEBUG GetGitCreds: Using NewSSHCreds (no passphrase)")
 		return git.NewSSHCreds(repo.SSHPrivateKey, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
 	}
 	if repo.GithubAppPrivateKey != "" && repo.GithubAppId != 0 && repo.GithubAppInstallationId != 0 {
