@@ -330,6 +330,7 @@ func secretToRepository(secret *corev1.Secret) (*appsv1.Repository, error) {
 		Password:                   string(secret.Data["password"]),
 		BearerToken:                string(secret.Data["bearerToken"]),
 		SSHPrivateKey:              string(secret.Data["sshPrivateKey"]),
+		SSHPassphrase:              string(secret.Data["sshPassphrase"]),
 		TLSClientCertData:          string(secret.Data["tlsClientCertData"]),
 		TLSClientCertKey:           string(secret.Data["tlsClientCertKey"]),
 		Type:                       string(secret.Data["type"]),
@@ -410,6 +411,7 @@ func (s *secretsRepositoryBackend) repositoryToSecret(repository *appsv1.Reposit
 	updateSecretString(secret, "password", repository.Password)
 	updateSecretString(secret, "bearerToken", repository.BearerToken)
 	updateSecretString(secret, "sshPrivateKey", repository.SSHPrivateKey)
+	updateSecretString(secret, "sshPassphrase", repository.SSHPassphrase)
 	updateSecretBool(secret, "enableOCI", repository.EnableOCI)
 	updateSecretBool(secret, "insecureOCIForceHttp", repository.InsecureOCIForceHttp)
 	updateSecretString(secret, "tlsClientCertData", repository.TLSClientCertData)
@@ -437,6 +439,7 @@ func (s *secretsRepositoryBackend) secretToRepoCred(secret *corev1.Secret) (*app
 		Password:                   string(secret.Data["password"]),
 		BearerToken:                string(secret.Data["bearerToken"]),
 		SSHPrivateKey:              string(secret.Data["sshPrivateKey"]),
+		SSHPassphrase:              string(secret.Data["sshPassphrase"]),
 		TLSClientCertData:          string(secret.Data["tlsClientCertData"]),
 		TLSClientCertKey:           string(secret.Data["tlsClientCertKey"]),
 		Type:                       string(secret.Data["type"]),
@@ -496,6 +499,7 @@ func (s *secretsRepositoryBackend) repoCredsToSecret(repoCreds *appsv1.RepoCreds
 	updateSecretString(secret, "password", repoCreds.Password)
 	updateSecretString(secret, "bearerToken", repoCreds.BearerToken)
 	updateSecretString(secret, "sshPrivateKey", repoCreds.SSHPrivateKey)
+	updateSecretString(secret, "sshPassphrase", repoCreds.SSHPassphrase)
 	updateSecretBool(secret, "enableOCI", repoCreds.EnableOCI)
 	updateSecretBool(secret, "insecureOCIForceHttp", repoCreds.InsecureOCIForceHttp)
 	updateSecretString(secret, "tlsClientCertData", repoCreds.TLSClientCertData)
