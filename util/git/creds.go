@@ -280,6 +280,7 @@ func NewSSHCreds(sshPrivateKey string, caPath string, insecureIgnoreHostKey bool
 }
 
 func NewSSHCredsWithPassphrase(sshPrivateKey string, sshPassphrase string, caPath string, insecureIgnoreHostKey bool, proxy string) SSHCreds {
+	log.Errorf("DEBUG NewSSHCredsWithPassphrase: passphrase='%s', len=%d", sshPassphrase, len(sshPassphrase))
 	return SSHCreds{sshPrivateKey, sshPassphrase, caPath, insecureIgnoreHostKey, proxy}
 }
 

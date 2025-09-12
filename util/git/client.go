@@ -314,6 +314,7 @@ func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
 	log.Errorf("WTF: %v", creds)
 	switch creds := creds.(type) {
 	case SSHCreds:
+		log.Errorf("DEBUG newAuth SSHCreds: sshPassphrase='%s', len=%d", creds.sshPassphrase, len(creds.sshPassphrase))
 		var sshUser string
 		if isSSH, user := IsSSHURL(repoURL); isSSH {
 			sshUser = user
@@ -321,11 +322,13 @@ func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
 		var signer ssh.Signer
 		var err error
 		if creds.sshPassphrase != "" {
+			log.Errorf("DEBUG newAuth: Using ParsePrivateKeyWithPassphrase")
 			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(creds.sshPrivateKey), []byte(creds.sshPassphrase))
 			if err != nil {
 				log.Errorf("TestWithPassphrase: %v %v", creds.sshPassphrase, err)
 			}
 		} else {
+			log.Errorf("DEBUG newAuth: Using ParsePrivateKey (no passphrase)")
 			signer, err = ssh.ParsePrivateKey([]byte(creds.sshPrivateKey))
 			if err != nil {
 				log.Errorf("TestWithoutPassphrase: %v", err)
