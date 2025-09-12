@@ -183,7 +183,6 @@ func (repo *Repository) CopyCredentialsFromRepo(source *Repository) {
 // CopyCredentialsFrom copies credentials from given credential template to receiving repository
 func (repo *Repository) CopyCredentialsFrom(source *RepoCreds) {
 	if source != nil {
-		log.Errorf("DEBUG CopyCredentialsFrom: source.SSHPassphrase='%s', len=%d", source.SSHPassphrase, len(source.SSHPassphrase))
 		if repo.Username == "" {
 			repo.Username = source.Username
 		}
@@ -199,7 +198,6 @@ func (repo *Repository) CopyCredentialsFrom(source *RepoCreds) {
 		if repo.SSHPassphrase == "" {
 			repo.SSHPassphrase = source.SSHPassphrase
 		}
-		log.Errorf("DEBUG CopyCredentialsFrom: after copy repo.SSHPassphrase='%s', len=%d", repo.SSHPassphrase, len(repo.SSHPassphrase))
 		if repo.TLSClientCertData == "" {
 			repo.TLSClientCertData = source.TLSClientCertData
 		}
@@ -247,12 +245,9 @@ func (repo *Repository) GetGitCreds(store git.CredsStore) git.Creds {
 		return git.NewHTTPSCreds(repo.Username, repo.Password, repo.BearerToken, repo.TLSClientCertData, repo.TLSClientCertKey, repo.IsInsecure(), store, repo.ForceHttpBasicAuth)
 	}
 	if repo.SSHPrivateKey != "" {
-		log.Errorf("DEBUG GetGitCreds: repo.SSHPassphrase='%s', len=%d", repo.SSHPassphrase, len(repo.SSHPassphrase))
 		if repo.SSHPassphrase != "" {
-			log.Errorf("DEBUG GetGitCreds: Using NewSSHCredsWithPassphrase")
 			return git.NewSSHCredsWithPassphrase(repo.SSHPrivateKey, repo.SSHPassphrase, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
 		}
-		log.Errorf("DEBUG GetGitCreds: Using NewSSHCreds (no passphrase)")
 		return git.NewSSHCreds(repo.SSHPrivateKey, getCAPath(repo.Repo), repo.IsInsecure(), repo.Proxy)
 	}
 	if repo.GithubAppPrivateKey != "" && repo.GithubAppId != 0 && repo.GithubAppInstallationId != 0 {
