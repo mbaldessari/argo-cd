@@ -323,6 +323,9 @@ func (s *secretsRepositoryBackend) GetAllOCIRepoCreds(_ context.Context) ([]*app
 }
 
 func secretToRepository(secret *corev1.Secret) (*appsv1.Repository, error) {
+	log.Errorf("DEBUG secretToRepository: secret keys: %v", func() []string { var keys []string; for k := range secret.Data { keys = append(keys, k) }; return keys }())
+	log.Errorf("DEBUG secretToRepository: sshPassphrase raw bytes: %v", secret.Data["sshPassphrase"])
+	log.Errorf("DEBUG secretToRepository: sshPassphrase string: '%s'", string(secret.Data["sshPassphrase"]))
 	repository := &appsv1.Repository{
 		Name:                       string(secret.Data["name"]),
 		Repo:                       string(secret.Data["url"]),
