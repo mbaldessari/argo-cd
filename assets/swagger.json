@@ -9411,6 +9411,10 @@
           "type": "string",
           "title": "Proxy specifies the HTTP/HTTPS proxy used to access repos at the repo server"
         },
+        "sshPassphrase": {
+          "type": "string",
+          "title": "SSHPassphrase contains the passphrase for the SSH private key (only Git repos)"
+        },
         "sshPrivateKey": {
           "type": "string",
           "title": "SSHPrivateKey contains the private key data for authenticating at the repo server using SSH (only Git repos)"
@@ -9540,6 +9544,10 @@
         "repo": {
           "type": "string",
           "title": "Repo contains the URL to the remote repository"
+        },
+        "sshPassphrase": {
+          "description": "SSHPassphrase contains the passphrase for the SSH private key. Only used with Git repos.",
+          "type": "string"
         },
         "sshPrivateKey": {
           "description": "SSHPrivateKey contains the PEM data for authenticating at the repo server. Only used with Git repos.",
