@@ -325,6 +325,7 @@ func newAuth(repoURL string, creds Creds) (transport.AuthMethod, error) {
 			signer, err = ssh.ParsePrivateKey([]byte(creds.sshPrivateKey))
 		}
 		if err != nil {
+			log.Errorf("Test1: %v", err)
 			return nil, err
 		}
 		auth := &PublicKeysWithOptions{}
