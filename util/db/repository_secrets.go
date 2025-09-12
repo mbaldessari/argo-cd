@@ -487,6 +487,7 @@ func (s *secretsRepositoryBackend) secretToRepoCred(secret *corev1.Secret) (*app
 	}
 	repository.UseAzureWorkloadIdentity = useAzureWorkloadIdentity
 
+	log.Errorf("DEBUG secretToRepoCred: SSHPassphrase='%s', len=%d, url=%s", repository.SSHPassphrase, len(repository.SSHPassphrase), repository.URL)
 	return repository, nil
 }
 

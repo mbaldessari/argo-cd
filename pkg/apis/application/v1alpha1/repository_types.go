@@ -183,6 +183,7 @@ func (repo *Repository) CopyCredentialsFromRepo(source *Repository) {
 // CopyCredentialsFrom copies credentials from given credential template to receiving repository
 func (repo *Repository) CopyCredentialsFrom(source *RepoCreds) {
 	if source != nil {
+		log.Errorf("DEBUG CopyCredentialsFrom: source.SSHPassphrase='%s', len=%d", source.SSHPassphrase, len(source.SSHPassphrase))
 		if repo.Username == "" {
 			repo.Username = source.Username
 		}
@@ -198,6 +199,7 @@ func (repo *Repository) CopyCredentialsFrom(source *RepoCreds) {
 		if repo.SSHPassphrase == "" {
 			repo.SSHPassphrase = source.SSHPassphrase
 		}
+		log.Errorf("DEBUG CopyCredentialsFrom: after copy repo.SSHPassphrase='%s', len=%d", repo.SSHPassphrase, len(repo.SSHPassphrase))
 		if repo.TLSClientCertData == "" {
 			repo.TLSClientCertData = source.TLSClientCertData
 		}
