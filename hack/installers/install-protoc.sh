@@ -8,6 +8,7 @@ PATH="${DIST_PATH}:${PATH}"
 . "$(dirname "$0")"/../tool-versions.sh
 
 OS=$(go env GOOS)
+ARCHITECTURE=$(go env GOARCH)
 case $OS in
   darwin)
     # For macOS, the x86_64 binary is used even on Apple Silicon (it is run through rosetta), so

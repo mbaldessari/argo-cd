@@ -1779,6 +1779,9 @@ message RepoCreds {
   // SSHPrivateKey contains the private key data for authenticating at the repo server using SSH (only Git repos)
   optional string sshPrivateKey = 4;
 
+  // SSHPassphrase contains the passphrase for the SSH private key (only Git repos)
+  optional string sshPassphrase = 30;
+
   // TLSClientCertData specifies the TLS client cert data for authenticating at the repo server
   optional string tlsClientCertData = 5;
 
@@ -1845,6 +1848,9 @@ message Repository {
 
   // SSHPrivateKey contains the PEM data for authenticating at the repo server. Only used with Git repos.
   optional string sshPrivateKey = 4;
+
+  // SSHPassphrase contains the passphrase for the SSH private key. Only used with Git repos.
+  optional string sshPassphrase = 31;
 
   // ConnectionState contains information about the current state of connection to the repository server
   optional ConnectionState connectionState = 5;
