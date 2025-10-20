@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-test
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+---
+# Simple configmap that we'll modify to trigger sync issues
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: selfheal-test-config
+  namespace: default
+data:
+  config.yaml: |
+    app:
+      name: "guestbook"
+      version: "1.0"

@@ -1,0 +1,35 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-bug-test
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal-test-ns  # This namespace doesn't exist, will cause sync failure
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=false  # Prevent auto-creation, ensuring failure
+    retry:
+      limit: 1  # Limit retries to make the failure happen faster
+---
+# Resource that will conflict and cause sync failures
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes  # This conflicts with the built-in kubernetes service
+  namespace: default
+spec:
+  ports:
+  - port: 443
+    targetPort: 443
+  selector:
+    app: conflicting-app

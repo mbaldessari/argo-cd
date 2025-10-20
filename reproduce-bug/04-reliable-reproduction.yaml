@@ -1,0 +1,39 @@
+# Most reliable reproduction: Use resource quotas to cause sync failures
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-test
+---
+# Create a restrictive resource quota that will cause deployment to fail
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: strict-quota
+  namespace: selfheal-test
+spec:
+  hard:
+    requests.cpu: "10m"      # Very low CPU limit
+    requests.memory: "10Mi"  # Very low memory limit
+    pods: "1"                # Only 1 pod allowed
+---
+# ArgoCD Application with selfHeal enabled
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-quota-test
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal-test
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 2  # Limit retries to speed up the failure

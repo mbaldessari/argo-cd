@@ -1,0 +1,45 @@
+# Simple reproduction using a Git repo with intentionally broken manifests
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-bug-demo
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal-demo-ns
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+---
+# Create a webhook that will cause the sync to fail
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: block-guestbook-sync
+webhooks:
+- name: block-guestbook.example.com
+  clientConfig:
+    service:
+      name: non-existent-webhook
+      namespace: default
+      path: "/validate"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments"]
+  namespaceSelector:
+    matchLabels:
+      name: selfheal-demo-ns
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail  # This will cause deployments to fail
