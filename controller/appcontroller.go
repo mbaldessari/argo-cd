@@ -2191,6 +2191,12 @@ func (ctrl *ApplicationController) autoSync(app *appv1.Application, syncStatus *
 		logCtx.Infof("Skipping auto-sync: another operation is in progress")
 		return nil, 0
 	}
+	// Also check if a sync operation is still running (app.Operation is cleared once the sync
+	// engine picks it up, but the operation may still be in progress)
+	if app.Status.OperationState != nil && !app.Status.OperationState.Phase.Completed() {
+		logCtx.Infof("Skipping auto-sync: another operation is in progress")
+		return nil, 0
+	}
 	if app.DeletionTimestamp != nil && !app.DeletionTimestamp.IsZero() {
 		logCtx.Infof("Skipping auto-sync: deletion in progress")
 		return nil, 0
@@ -2248,17 +2254,19 @@ func (ctrl *ApplicationController) autoSync(app *appv1.Application, syncStatus *
 	ts.AddCheckpoint("already_attempted_sync_ms")
 	if alreadyAttempted {
 		if !lastAttemptedPhase.Successful() {
-			logCtx.Warnf("Skipping auto-sync: failed previous sync attempt to %s and will not retry for %s", lastAttemptedRevisions, desiredRevisions)
-			message := fmt.Sprintf("Failed last sync attempt to %s: %s", lastAttemptedRevisions, app.Status.OperationState.Message)
-			return &appv1.ApplicationCondition{Type: appv1.ApplicationConditionSyncError, Message: message}, 0
-		}
-		if !app.Spec.SyncPolicy.Automated.SelfHeal {
+			if !app.Spec.SyncPolicy.Automated.SelfHeal {
+				logCtx.Warnf("Skipping auto-sync: failed previous sync attempt to %s and will not retry for %s", lastAttemptedRevisions, desiredRevisions)
+				message := fmt.Sprintf("Failed last sync attempt to %s: %s", lastAttemptedRevisions, app.Status.OperationState.Message)
+				return &appv1.ApplicationCondition{Type: appv1.ApplicationConditionSyncError, Message: message}, 0
+			}
+			logCtx.Infof("Self-healing: retrying failed previous sync attempt to %s", lastAttemptedRevisions)
+		} else if !app.Spec.SyncPolicy.Automated.SelfHeal {
 			logCtx.Infof("Skipping auto-sync: most recent sync already to %s", desiredRevisions)
 			return nil, 0
 		}
 		// Self heal will trigger a new sync operation when the desired state changes and cause the application to
-		// be OutOfSync when it was previously synced Successfully. This means SelfHeal should only ever be attempted
-		// when the revisions have not changed, and where the previous sync to these revision was successful
+		// be OutOfSync. SelfHeal retries both after successful syncs (drift correction) and after failed syncs
+		// (transient error recovery), subject to backoff
 		if app.Status.OperationState != nil && app.Status.OperationState.Operation.Sync != nil {
 			op.Sync.SelfHealAttemptsCount = app.Status.OperationState.Operation.Sync.SelfHealAttemptsCount
 		}
