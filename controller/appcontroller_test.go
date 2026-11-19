@@ -3446,6 +3446,119 @@ func TestProcessRequestedAppOperation_SyncTimeout(t *testing.T) {
 	}
 }
 
+func TestProcessAppOperationQueueItem_OrphanedOperationState(t *testing.T) {
+	// Simulate the race condition where app.Operation is nil but
+	// operationState.Phase is still Running (orphaned operation).
+	// processAppOperationQueueItem should detect this and force the phase to Error.
+	app := newFakeApp()
+	app.Operation = nil
+	app.Status.OperationState = &v1alpha1.OperationState{
+		Operation: v1alpha1.Operation{
+			Sync: &v1alpha1.SyncOperation{
+				Revision: "HEAD",
+			},
+		},
+		Phase:     synccommon.OperationRunning,
+		Message:   "waiting for healthy state of rbac.authorization.k8s.io/ClusterRoleBinding/vp-gitops/vp-gitops-cluster-admin-rolebinding",
+		StartedAt: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
+		SyncResult: &v1alpha1.SyncOperationResult{
+			Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			Source:   *app.Spec.Source.DeepCopy(),
+		},
+	}
+
+	ctrl := newFakeController(t.Context(), &fakeData{apps: []runtime.Object{app}}, nil)
+
+	key, err := cache.MetaNamespaceKeyFunc(app)
+	require.NoError(t, err)
+	ctrl.appOperationQueue.Add(key)
+
+	ctrl.processAppOperationQueueItem()
+
+	patchedApp, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(app.Namespace).Get(t.Context(), app.Name, metav1.GetOptions{})
+	require.NoError(t, err)
+	require.NotNil(t, patchedApp.Status.OperationState)
+	assert.Equal(t, synccommon.OperationError, patchedApp.Status.OperationState.Phase)
+	assert.Contains(t, patchedApp.Status.OperationState.Message, "operation orphaned")
+	assert.Contains(t, patchedApp.Status.OperationState.Message, "waiting for healthy state")
+	assert.NotNil(t, patchedApp.Status.OperationState.FinishedAt)
+	assert.Nil(t, patchedApp.Operation)
+}
+
+func TestProcessAppOperationQueueItem_OrphanedOperationState_NotTriggeredWhenCompleted(t *testing.T) {
+	// Verify that the orphan detection does NOT trigger when operationState is in
+	// a completed phase (Succeeded, Failed, Error). Only Running/Terminating are orphans.
+	for _, phase := range []synccommon.OperationPhase{
+		synccommon.OperationSucceeded,
+		synccommon.OperationFailed,
+		synccommon.OperationError,
+	} {
+		t.Run(string(phase), func(t *testing.T) {
+			app := newFakeApp()
+			app.Operation = nil
+			app.Status.OperationState = &v1alpha1.OperationState{
+				Operation: v1alpha1.Operation{
+					Sync: &v1alpha1.SyncOperation{
+						Revision: "HEAD",
+					},
+				},
+				Phase:   phase,
+				Message: "some message",
+				SyncResult: &v1alpha1.SyncOperationResult{
+					Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					Source:   *app.Spec.Source.DeepCopy(),
+				},
+			}
+
+			ctrl := newFakeController(t.Context(), &fakeData{apps: []runtime.Object{app}}, nil)
+
+			key, err := cache.MetaNamespaceKeyFunc(app)
+			require.NoError(t, err)
+			ctrl.appOperationQueue.Add(key)
+
+			ctrl.processAppOperationQueueItem()
+
+			patchedApp, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(app.Namespace).Get(t.Context(), app.Name, metav1.GetOptions{})
+			require.NoError(t, err)
+			assert.Equal(t, phase, patchedApp.Status.OperationState.Phase, "completed phase should not be changed")
+			assert.Equal(t, "some message", patchedApp.Status.OperationState.Message, "message should not be changed")
+		})
+	}
+}
+
+func TestAutoSync_OrphanedOperationState_RecoversAfterFix(t *testing.T) {
+	// After the orphan fix forces operationState to Error, verify that a
+	// subsequent autoSync call can initiate a new sync (the deadlock is broken).
+	app := newFakeApp()
+	app.Operation = nil
+	app.Status.OperationState = &v1alpha1.OperationState{
+		Operation: v1alpha1.Operation{
+			Sync: &v1alpha1.SyncOperation{
+				Revision: "HEAD",
+				Source:   app.Spec.Source.DeepCopy(),
+			},
+		},
+		Phase:   synccommon.OperationError,
+		Message: "operation orphaned: operation field was cleared while sync was in progress",
+		SyncResult: &v1alpha1.SyncOperationResult{
+			Revision: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			Source:   *app.Spec.Source.DeepCopy(),
+		},
+	}
+
+	ctrl := newFakeController(t.Context(), &fakeData{apps: []runtime.Object{app}}, nil)
+	syncStatus := v1alpha1.SyncStatus{
+		Status:   v1alpha1.SyncStatusCodeOutOfSync,
+		Revision: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+	}
+	cond, _ := ctrl.autoSync(app, &syncStatus, []v1alpha1.ResourceStatus{{Name: "guestbook", Kind: kube.DeploymentKind, Status: v1alpha1.SyncStatusCodeOutOfSync}}, true)
+	assert.Nil(t, cond, "autoSync should not return error condition for a different revision")
+
+	updatedApp, err := ctrl.applicationClientset.ArgoprojV1alpha1().Applications(test.FakeArgoCDNamespace).Get(t.Context(), "my-app", metav1.GetOptions{})
+	require.NoError(t, err)
+	assert.NotNil(t, updatedApp.Operation, "autoSync should have initiated a new sync operation")
+}
+
 func TestApplicationController_PersistAppStatus_FallbackOnSizeLimit(t *testing.T) {
 	app := newFakeApp()
 	app.Status.Health.Status = health.HealthStatusHealthy

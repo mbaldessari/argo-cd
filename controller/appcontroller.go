@@ -1138,6 +1138,19 @@ func (ctrl *ApplicationController) processAppOperationQueueItem() (processNext b
 	if app.Operation != nil {
 		ctrl.processRequestedAppOperation(app)
 		ts.AddCheckpoint("process_requested_app_operation_ms")
+	} else if isOperationInProgress(app) {
+		// Orphaned operation: app.Operation was cleared but operationState is still Running.
+		// This can happen when concurrent auto-sync triggers race: the second SetAppOperation
+		// does a full Update (setting Operation and clearing OperationState), while the first
+		// operation's setOperationState patches OperationState back to Running. When the second
+		// operation completes and clears Operation, the stale Running operationState remains.
+		// Force the operationState to Error so auto-sync can recover.
+		logCtx.Warnf("Detected orphaned operation state (phase: %s, message: %s). Operation field is nil but operationState is still in progress. Forcing to Error.",
+			app.Status.OperationState.Phase, app.Status.OperationState.Message)
+		state := app.Status.OperationState.DeepCopy()
+		state.Phase = synccommon.OperationError
+		state.Message = fmt.Sprintf("operation orphaned: operation field was cleared while sync was in progress (original message: %s)", state.Message)
+		ctrl.setOperationState(app, state)
 	} else if app.DeletionTimestamp != nil {
 		ctx := context.Background()
 		if err = ctrl.finalizeApplicationDeletion(ctx, app, func(project string) ([]*appv1.Cluster, error) {
